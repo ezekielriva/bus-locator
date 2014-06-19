@@ -1,3 +1,6 @@
-<section data-ng-controller="IndexController">
-    <h1 mean-token="'home-default'">This is the home view</h1>
+<section data-ng-controller="IndexController as index">
+    <h1 mean-token="'home-default'">
+      <span ng-model="latitude"></span>, <span ng-model="longitude"></span>
+    </h1>
+    <google-maps></google-maps>
 </section>

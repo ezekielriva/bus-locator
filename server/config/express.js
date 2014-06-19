@@ -25,7 +25,7 @@ var express = require('express'),
     fs = require('fs'),
     Grid = require('gridfs-stream');
 
-module.exports = function(app, passport, db) {
+module.exports = function(app, passport, db, socketio) {
 
     var gfs = new Grid(db.connection.db, db.mongo);
 
@@ -202,4 +202,7 @@ module.exports = function(app, passport, db) {
             app.use(errorHandler());
         }
     });
+
+    // Registre socketio
+    app.socketio = socketio;
 };

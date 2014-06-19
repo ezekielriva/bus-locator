@@ -32,3 +32,42 @@ exports.render = function(req, res) {
         adminEnabled: isAdmin() && mean.moduleEnabled('mean-admin')
     });
 };
+
+exports.io = function(io) {
+  console.log('Index Controller SOCKET');
+  var users = [];
+  io.on('connection', function(socket){
+    console.log('a user connected');
+
+    socket.on('user location', function(user) {
+      console.log('user location', user);
+      var expected_user,
+          user_index;
+
+      expected_user = users.filter(function(element, index) {
+        if( element.id === user.id ) {
+          user_index = index;
+          return true;
+        }
+        return false;
+      });
+
+      if ( expected_user.length > 0 ) {
+        users[user_index] = user;
+      } else {
+        if ( user.id ) {
+          users.push(user);
+        }
+      }
+    });
+
+    setInterval(function() {
+      socket.emit('retrieve users', users);
+    }, 1000);
+  });
+
+
+  io.on('disconnect', function(socket){
+    console.log('a user disconnect');
+  });
+};
