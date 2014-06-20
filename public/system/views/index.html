@@ -1,6 +1,7 @@
-<section data-ng-controller="IndexController as index">
-    <h1 mean-token="'home-default'">
-      <span ng-model="latitude"></span>, <span ng-model="longitude"></span>
-    </h1>
+<section data-ng-controller="IndexController">
+    <h3 ng-show="latitude && longitude">
+      You current position is -
+      Lat: {{latitude}}, Long: {{longitude}}
+    </h3>
     <google-maps></google-maps>
 </section>

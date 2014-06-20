@@ -39,12 +39,11 @@ exports.io = function(io) {
   io.on('connection', function(socket){
     console.log('a user connected');
 
-    socket.on('user location', function(user) {
-      console.log('user location', user);
-      var expected_user,
-          user_index;
+    socket.on('send:user_location', function(user) {
+      console.log('send:user_location', user);
+      var user_index = -1;
 
-      expected_user = users.filter(function(element, index) {
+      users.filter(function(element, index) {
         if( element.id === user.id ) {
           user_index = index;
           return true;
@@ -52,8 +51,9 @@ exports.io = function(io) {
         return false;
       });
 
-      if ( expected_user.length > 0 ) {
-        users[user_index] = user;
+      if ( user_index >= 0 ) {
+        users[user_index].latitude = user.latitude;
+        users[user_index].longitude = user.longitude;
       } else {
         if ( user.id ) {
           users.push(user);
@@ -61,13 +61,30 @@ exports.io = function(io) {
       }
     });
 
+    socket.on('beforeDisconnect', function(data) {
+      console.log(data);
+      var user_index = -1;
+      users.filter(function(user, index) {
+        if ( user.id === data ) {
+          user_index = index;
+          return true;
+        }
+        return false;
+      });
+
+      if (user_index >= 0) {
+        users.splice(user_index, 1);
+      }
+      socket.broadcast.emit('user:disconnect', data);
+      socket.disconnect();
+    });
+
+    socket.on('disconnect', function(){
+      console.log('a user disconnect');
+    });
+
     setInterval(function() {
-      socket.emit('retrieve users', users);
+      socket.emit('response:users', users);
     }, 1000);
-  });
-
-
-  io.on('disconnect', function(socket){
-    console.log('a user disconnect');
   });
 };

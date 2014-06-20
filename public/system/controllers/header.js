@@ -1,7 +1,7 @@
 'use strict';
 
-angular.module('mean.system').controller('HeaderController', ['$scope', '$rootScope', 'Global', 'Menus',
-    function($scope, $rootScope, Global, Menus) {
+angular.module('mean.system').controller('HeaderController', ['$scope', '$rootScope', 'Global', 'Menus', '$socketio', '$window',
+    function($scope, $rootScope, Global, Menus, $socketio, $window) {
         $scope.global = Global;
         $scope.menus = {};
 
@@ -32,7 +32,12 @@ angular.module('mean.system').controller('HeaderController', ['$scope', '$rootSc
                 authenticated: !! $rootScope.user,
                 user: $rootScope.user
             };
+            $rootScope.$emit('getPosition');
         });
+
+        $scope.logout = function() {
+            $socketio.emit('beforeDisconnect', $scope.global.user._id);
+        };
 
     }
 ]);
