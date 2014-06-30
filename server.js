@@ -6,7 +6,9 @@
 var mongoose = require('mongoose'),
     passport = require('passport'),
     logger = require('mean-logger'),
-    socketio = require('socket.io');
+    socketio = require('socket.io'),
+    util = require('meanio/lib/util'),
+    appPath = process.cwd();
 
 /**
  * Main application entry file.
@@ -26,6 +28,15 @@ console.log('Mean app started on port ' + config.port + ' (' + process.env.NODE_
 
 app.io = app.socketio.listen(server);
 console.log('Socketio app listen');
+function bootstrapSocketIo() {
+        // Skip the app/routes/middlewares directory as it is meant to be
+        // used and shared by routes as further middlewares and is not a
+        // route by itself
+        util.walk(appPath + '/server', 'socket', '', function(path) {
+            require(path)(app.io);
+        });
+    }
+bootstrapSocketIo();
 
 // Initializing logger
 logger.init(app, passport, mongoose);

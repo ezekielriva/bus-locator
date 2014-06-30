@@ -8,8 +8,9 @@ angular.module('mean.system').controller('IndexController',
   $scope.user = $scope.global.user;
   $scope.latitude = '';
   $scope.longitude = '';
-  $scope.users = [];
-  $scope.marks = [];
+  $scope.users = {};
+  $scope.marks = {};
+  var interval;
 
   function emitPosition (latitude, longitude) {
     console.log($scope.global.user._id);
@@ -18,7 +19,10 @@ angular.module('mean.system').controller('IndexController',
       latitude: latitude,
       longitude: longitude
     };
-    $socketio.emit('send:user_location', data);
+    if (data.id) {
+      drawMark(data);
+      $socketio.emit('send:user_location', data);
+    }
   }
 
   function changeMapCenter (latitude, longitude) {
@@ -37,86 +41,60 @@ angular.module('mean.system').controller('IndexController',
     });
   }
 
-  function drawMarks(users) {
-    var newMark,
-        markIndex = -1;
-    users.forEach(function(user) {
-
-      $scope.marks.filter(function(element, index) {
-        if ( element.id === user.id ) {
-          markIndex = index;
-          return true;
-        }
-        return false;
+  function drawMark (user) {
+    if ( $scope.marks[user.id] ) {
+      $scope.marks[user.id].setPosition( new GoogleMaps.LatLng(user.latitude, user.longitude) );
+    } else {
+      $scope.marks[user.id] = new GoogleMaps.Marker({
+        map: $scope.global.map,
+        draggable:false,
+        position: new GoogleMaps.LatLng(user.latitude, user.longitude)
       });
-
-      if ( markIndex >= 0 ) {
-        $scope.marks[markIndex].mark.setPosition( new GoogleMaps.LatLng(user.latitude, user.longitude) );
-      } else {
-        if ( user.id ) {
-          newMark = new GoogleMaps.Marker({
-            map: $scope.global.map,
-            draggable:false,
-            position: new GoogleMaps.LatLng(user.latitude, user.longitude)
-          });
-          $scope.marks.push({ id: user.id, mark: newMark });
-        }
-      }
-
-    });
+    }
   }
 
-  $socketio.on('response:users', function(data) {
-    $scope.$apply(function(scope) {
-      scope.users = data;
-    });
-    drawMarks($scope.users);
+  $socketio.on('send:update_location', function(user) {
+    console.log(user);
+    if ( user.id ) {
+      $scope.$apply(function(scope) {
+        scope.users[user.id] = user;
+        drawMark(user);
+      });
+    }
   });
 
   $socketio.on('user:disconnect', function(userId) {
-    var markIndex, markElement;
-    $scope.marks.filter(function(element, index) {
-      if ( element.id === userId ) {
-        markIndex = index;
-        return true;
-      }
-      return false;
-    });
-
-    if ( markIndex >= 0 ) {
-      markElement = $scope.marks[markIndex];
-      $scope.marks.splice(markIndex, 1);
-      markElement.mark.setMap(null);
-    }
+    $scope.marks[userId].setMap(null);
+    delete $scope.marks[userId];
   });
 
   $socketio.on('disconnect', function() {
     $window.location = '/logout';
   });
 
-  getPosition(function(latitude, longitude) {
-    changeMapCenter(latitude, longitude);
-    if ($scope.global.authenticated) {
-      emitPosition(latitude, longitude);
-    }
+  $rootScope.$on('loggedin', function() {
+    $scope.global.authenticated = !! $rootScope.user;
+    $scope.global.user = $rootScope.user;
   });
 
-  $rootScope.$on('loggedin', function() {
-    $scope.global.user = $rootScope.user;
-    getPosition(emitPosition);
+  $scope.$on('$destroy', function (event) {
+    $socketio.removeAllListeners();
+    clearInterval(interval);
   });
+
+  function initInterval () {
+    return setInterval(function() {
+      getPosition(emitPosition);
+    }, 3000);
+  }
 
   if ($scope.global.authenticated) {
-    setInterval(function() {
-      getPosition(emitPosition);
-    }, 1000);
+    console.log('Auth');
+    clearInterval(interval);
+    getPosition(emitPosition);
+    interval = initInterval();
   }
-}]);
 
-/*for(var i = 0; i < data.length; i++) {
-      if (data[i].marker) {
-        debugger;
-      } else {
-        data[i].marker =
-      }
-    }*/
+  getPosition(changeMapCenter);
+
+}]);
